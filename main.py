@@ -1,109 +1,110 @@
 import os
 import requests
 import time
+import asyncio
 from datetime import datetime
 from telegram import Bot
 from telegram.error import TelegramError
 
-# Configuration
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
-CHECK_INTERVAL = 300  # 5 minutes (in seconds)
-DOMAIN_FILE = "domain.txt"
-REPORT_INTERVAL = 3600  # 1 hour (in seconds)
+# Konfigurasi
+TOKEN_BOT_TELEGRAM = os.getenv("TOKEN_BOT_TELEGRAM")
+ID_GRUP_TELEGRAM = os.getenv("ID_GRUP_TELEGRAM")
+INTERVAL_PEMERIKSAAN = 300  # 5 menit (dalam detik)
+FILE_DOMAIN = "domain.txt"
+INTERVAL_LAPORAN = 3600  # 1 jam (dalam detik)
 
-# Icons for status reports
-ICONS = {
-    "up": "🟢",
+# Ikon untuk laporan
+IKON = {
+    "aktif": "🟢",
     "down": "🔴",
     "bot": "🤖",
-    "time": "🕒",
-    "report": "📊",
-    "alert": "🚨"
+    "waktu": "🕒",
+    "laporan": "📊",
+    "peringatan": "🚨"
 }
 
-def load_domains():
-    """Load domains from file"""
+def muat_domain():
+    """Muat daftar domain dari file"""
     try:
-        with open(DOMAIN_FILE, 'r') as f:
-            return [line.strip() for line in f if line.strip()]
+        with open(FILE_DOMAIN, 'r') as f:
+            return [baris.strip() for baris in f if baris.strip()]
     except FileNotFoundError:
-        print(f"Error: {DOMAIN_FILE} not found!")
+        print(f"Error: File {FILE_DOMAIN} tidak ditemukan!")
         return []
 
-def check_website(url):
-    """Check if website is up"""
+def periksa_situs(url):
+    """Periksa status website"""
     try:
         response = requests.get(url, timeout=10)
-        return response.status_code < 400  # Consider 4xx/5xx as down
+        return response.status_code < 400  # Anggap status 4xx/5xx sebagai down
     except (requests.ConnectionError, requests.Timeout, requests.RequestException):
         return False
 
-def send_telegram_message(message):
-    """Send message to Telegram"""
-    bot = Bot(token=TELEGRAM_BOT_TOKEN)
+async def kirim_pesan_telegram(pesan):
+    """Kirim pesan ke Telegram"""
+    bot = Bot(token=TOKEN_BOT_TELEGRAM)
     try:
-        bot.send_message(
-            chat_id=TELEGRAM_CHAT_ID,
-            text=message,
+        await bot.send_message(
+            chat_id=ID_GRUP_TELEGRAM,
+            text=pesan,
             parse_mode="Markdown"
         )
     except TelegramError as e:
-        print(f"Failed to send Telegram message: {e}")
+        print(f"Gagal mengirim pesan Telegram: {e}")
 
-def generate_status_report(domains):
-    """Generate hourly status report"""
-    report = [
-        f"{ICONS['report']} *Hourly Domain Status Report*",
-        f"{ICONS['time']} {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+def buat_laporan_status(domain_list):
+    """Buat laporan status berkala"""
+    laporan = [
+        f"{IKON['laporan']} *Laporan Status Website*",
+        f"{IKON['waktu']} {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
         ""
     ]
     
-    for domain in domains:
-        status = check_website(domain)
-        icon = ICONS['up'] if status else ICONS['down']
-        report.append(f"{icon} `{domain}`")
+    for domain in domain_list:
+        status = periksa_situs(domain)
+        ikon = IKON['aktif'] if status else IKON['down']
+        laporan.append(f"{ikon} `{domain}`")
     
-    report.extend([
+    laporan.extend([
         "",
-        f"{ICONS['bot']} *Bot Cek Domain Aktif* ✅",
-        f"Laporan selanjutnya 1 jam lagi"
+        f"{IKON['bot']} *Bot sedang berjalan* ✅",
+        f"Laporan berikutnya dalam 1 jam"
     ])
     
-    return "\n".join(report)
+    return "\n".join(laporan)
 
-def monitor_domains():
-    domains = load_domains()
-    if not domains:
-        print("No domains to monitor. Exiting...")
+async def monitor_domain():
+    daftar_domain = muat_domain()
+    if not daftar_domain:
+        print("Tidak ada domain yang dimonitor. Keluar...")
         return
 
-    last_report_time = time.time()
-    print(f"Monitoring {len(domains)} domains...")
+    waktu_laporan_terakhir = time.time()
+    print(f"Memantau {len(daftar_domain)} domain...")
 
     while True:
-        current_time = time.time()
+        waktu_sekarang = time.time()
         
-        # Check all domains
-        for domain in domains:
-            if not check_website(domain):
-                alert_msg = (
-                    f"{ICONS['alert']} *Website Down Alert*\n"
+        # Periksa semua domain
+        for domain in daftar_domain:
+            if not periksa_situs(domain):
+                pesan_peringatan = (
+                    f"{IKON['peringatan']} *Website Down!*\n"
                     f"• Domain: `{domain}`\n"
-                    f"• Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
-                    f"• Status: {ICONS['down']} Offline"
+                    f"• Waktu: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+                    f"• Status: {IKON['down']} Offline"
                 )
-                send_telegram_message(alert_msg)
-                print(f"Alert sent: {domain} is DOWN")
+                await kirim_pesan_telegram(pesan_peringatan)
+                print(f"Peringatan terkirim: {domain} DOWN")
 
-        # Send hourly report
-        if current_time - last_report_time >= REPORT_INTERVAL:
-            report = generate_status_report(domains)
-            send_telegram_message(report)
-            last_report_time = current_time
-            print(f"Hourly report sent at {datetime.now()}")
+        # Kirim laporan berkala
+        if waktu_sekarang - waktu_laporan_terakhir >= INTERVAL_LAPORAN:
+            laporan = buat_laporan_status(daftar_domain)
+            await kirim_pesan_telegram(laporan)
+            waktu_laporan_terakhir = waktu_sekarang
+            print(f"Laporan terkirim pada {datetime.now()}")
 
-        time.sleep(CHECK_INTERVAL)
+        await asyncio.sleep(INTERVAL_PEMERIKSAAN)
 
 if __name__ == "__main__":
-    monitor_domains()
+    asyncio.run(monitor_domain())
