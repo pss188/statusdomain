@@ -11,7 +11,7 @@ GROUP_CHAT_ID = int(os.getenv("GROUP_CHAT_ID"))
 
 bot = telegram.Bot(token=BOT_TOKEN)
 
-DOMAIN_TXT_URL = "https://raw.githubusercontent.com/username/repo/main/domain.txt"
+DOMAIN_TXT_URL = "https://raw.githubusercontent.com/pss188/statusdomain/refs/heads/main/domain.txt"
 
 def ambil_list_domain():
     try:
