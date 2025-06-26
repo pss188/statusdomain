@@ -4,35 +4,24 @@ from datetime import datetime
 import os
 from telegram import Bot
 from telegram.constants import ParseMode
-import aiohttp
+import logging
 
-# Ambil token dan chat ID dari environment
+# Setup logger
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 GROUP_CHAT_ID = int(os.getenv("GROUP_CHAT_ID"))
 
-# Ganti dengan RAW URL domain.txt milikmu
-DOMAIN_TXT_URL = "https://raw.githubusercontent.com/pss188/statusdomain/refs/heads/main/domain.txt"
-
 bot = Bot(token=BOT_TOKEN)
 
-async def kirim_pesan(pesan):
+def baca_domain():
     try:
-        await bot.send_message(chat_id=GROUP_CHAT_ID, text=pesan, parse_mode=ParseMode.MARKDOWN)
-        print(f"{datetime.now()}: Pesan terkirim ke Telegram")
+        with open("domain.txt", "r") as f:
+            domains = [line.strip() for line in f if line.strip()]
+            return domains
     except Exception as e:
-        print(f"Error kirim pesan: {e}")
-
-async def ambil_list_domain():
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(DOMAIN_TXT_URL, timeout=10) as response:
-                if response.status != 200:
-                    raise Exception(f"HTTP status {response.status}")
-                text = await response.text()
-                domains = [d.strip() for d in text.strip().splitlines() if d.strip()]
-                return domains
-    except Exception as e:
-        print(f"Error ambil domain.txt: {e}")
+        logger.error(f"Error baca domain: {e}")
         return []
 
 def cek_domain(domain):
@@ -41,22 +30,28 @@ def cek_domain(domain):
     }
     try:
         response = requests.get(f"http://{domain}", timeout=5, headers=headers)
-        # Selama ada respons dari server, kita anggap domain aktif (meskipun 403, 404, dll)
+        # Anggap domain UP selama ada respons HTTP apapun
         return "UP"
     except requests.RequestException:
         return "Kayaknya Gak Bisa Dibuka, Tolong Cek? Kalau masih bisa abaikan aja"
 
+async def kirim_pesan(pesan):
+    try:
+        await bot.send_message(chat_id=GROUP_CHAT_ID, text=pesan, parse_mode=ParseMode.MARKDOWN)
+        logger.info(f"{datetime.now()}: Pesan terkirim ke Telegram")
+    except Exception as e:
+        logger.error(f"Error kirim pesan: {e}")
 
 async def cek_domain_job():
-    domains = await ambil_list_domain()
+    domains = baca_domain()
     if not domains:
-        print(f"{datetime.now()}: Tidak ada domain yang bisa dicek.")
+        logger.warning(f"{datetime.now()}: Tidak ada domain yang bisa dicek.")
         return
 
     down = {}
     for domain in domains:
         status = cek_domain(domain)
-        print(f"{datetime.now()}: {domain} -> {status}")
+        logger.info(f"{datetime.now()}: {domain} -> {status}")
         if status != "UP":
             down[domain] = status
 
@@ -71,7 +66,7 @@ async def lapor_status_bot():
     await kirim_pesan(pesan)
 
 async def run_bot():
-    print("🚀 Bot mulai dijalankan...")
+    logger.info("🚀 Bot mulai dijalankan...")
     while True:
         now = datetime.now()
 
@@ -79,7 +74,7 @@ async def run_bot():
         if now.minute % 5 == 0:
             await cek_domain_job()
 
-        # Lapor status tiap jam (saat menit == 0)
+        # Lapor status tiap jam (menit = 0)
         if now.minute == 0:
             await lapor_status_bot()
 
