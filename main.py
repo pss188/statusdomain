@@ -11,7 +11,7 @@ GROUP_CHAT_ID = int(os.getenv("GROUP_CHAT_ID"))
 
 bot = telegram.Bot(token=BOT_TOKEN)
 
-DOMAIN_TXT_URL = "https://raw.githubusercontent.com/pss188/statusdomain/refs/heads/main/domain.txt"
+DOMAIN_TXT_URL = "https://raw.githubusercontent.com/pss188/statusdomain/refs/heads/main/domain.txt"  # Ganti URL ini
 
 def ambil_list_domain():
     try:
@@ -48,11 +48,11 @@ def job_cek_domain():
             down_domains[domain] = status
 
     if down_domains:
-        pesan = f"⚠️ *Laporan Domain DOWN* ({datetime.now().strftime('%Y-%m-%d %H:%M:%S')})\n"
+        pesan = f"⚠️ Laporan Domain DOWN ({datetime.now().strftime('%Y-%m-%d %H:%M:%S')}):\n"
         for d, s in down_domains.items():
             pesan += f"- {d}: {s}\n"
         try:
-            bot.send_message(chat_id=GROUP_CHAT_ID, text=pesan, parse_mode=telegram.ParseMode.MARKDOWN)
+            bot.send_message(chat_id=GROUP_CHAT_ID, text=pesan)
             print(f"{datetime.now()}: Laporan domain DOWN terkirim ke Telegram")
         except Exception as e:
             print(f"Error kirim laporan domain DOWN: {e}")
@@ -68,8 +68,8 @@ def job_lapor_status_bot():
         print(f"Error kirim laporan status bot: {e}")
 
 def main():
-    job_cek_domain()  # cek saat mulai
-    job_lapor_status_bot()  # lapor status bot saat mulai
+    job_cek_domain()
+    job_lapor_status_bot()
 
     schedule.every(5).minutes.do(job_cek_domain)
     schedule.every(60).minutes.do(job_lapor_status_bot)
