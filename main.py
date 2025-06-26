@@ -5,16 +5,13 @@ from datetime import datetime
 import telegram
 import os
 
-# Ambil token dan chat id dari environment variables (lebih aman)
+# Ambil token dan chat id dari environment variables
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 GROUP_CHAT_ID = int(os.getenv("GROUP_CHAT_ID"))
 
 bot = telegram.Bot(token=BOT_TOKEN)
 
-# Ganti URL ini sesuai lokasi domain.txt di GitHub kamu
-DOMAIN_TXT_URL = "https://raw.githubusercontent.com/pss188/statusdomain/refs/heads/main/domain.txt"
-
-status_results = {}
+DOMAIN_TXT_URL = "https://raw.githubusercontent.com/username/repo/main/domain.txt"
 
 def ambil_list_domain():
     try:
@@ -38,31 +35,44 @@ def cek_domain(domain):
         return "DOWN (no response)"
 
 def job_cek_domain():
-    global status_results
     domains = ambil_list_domain()
     if not domains:
-        print("Tidak dapat ambil daftar domain.")
+        print(f"{datetime.now()}: Tidak dapat ambil daftar domain.")
         return
+
+    down_domains = {}
     for domain in domains:
         status = cek_domain(domain)
-        status_results[domain] = status
         print(f"{datetime.now()}: {domain} -> {status}")
+        if status != "UP":
+            down_domains[domain] = status
 
-def job_kirim_laporan():
-    if not status_results:
-        print("Tidak ada hasil cek domain untuk dilaporkan.")
-        return
-    pesan = "Laporan Status Domain per jam:\n"
-    for domain, status in status_results.items():
-        pesan += f"- {domain}: {status}\n"
-    bot.send_message(chat_id=GROUP_CHAT_ID, text=pesan)
-    print(f"{datetime.now()}: Laporan terkirim ke Telegram")
+    if down_domains:
+        pesan = f"⚠️ *Laporan Domain DOWN* ({datetime.now().strftime('%Y-%m-%d %H:%M:%S')})\n"
+        for d, s in down_domains.items():
+            pesan += f"- {d}: {s}\n"
+        try:
+            bot.send_message(chat_id=GROUP_CHAT_ID, text=pesan, parse_mode=telegram.ParseMode.MARKDOWN)
+            print(f"{datetime.now()}: Laporan domain DOWN terkirim ke Telegram")
+        except Exception as e:
+            print(f"Error kirim laporan domain DOWN: {e}")
+    else:
+        print(f"{datetime.now()}: Semua domain UP, tidak kirim laporan.")
+
+def job_lapor_status_bot():
+    pesan = f"🤖 Bot status: Aktif dan berjalan baik ({datetime.now().strftime('%Y-%m-%d %H:%M:%S')})"
+    try:
+        bot.send_message(chat_id=GROUP_CHAT_ID, text=pesan)
+        print(f"{datetime.now()}: Laporan status bot terkirim ke Telegram")
+    except Exception as e:
+        print(f"Error kirim laporan status bot: {e}")
 
 def main():
-    job_cek_domain()  # cek langsung saat mulai
+    job_cek_domain()  # cek saat mulai
+    job_lapor_status_bot()  # lapor status bot saat mulai
 
     schedule.every(5).minutes.do(job_cek_domain)
-    schedule.every(60).minutes.do(job_kirim_laporan)
+    schedule.every(60).minutes.do(job_lapor_status_bot)
 
     while True:
         schedule.run_pending()
