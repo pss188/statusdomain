@@ -6,9 +6,12 @@ from telegram import Bot
 from telegram.constants import ParseMode
 import aiohttp
 
+# Ambil token dan chat ID dari environment
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 GROUP_CHAT_ID = int(os.getenv("GROUP_CHAT_ID"))
-DOMAIN_TXT_URL = "https://raw.githubusercontent.com/pss188/statusdomain/refs/heads/main/domain.txt"  # Ganti URL
+
+# Ganti dengan RAW URL domain.txt milikmu
+DOMAIN_TXT_URL = "https://raw.githubusercontent.com/pss188/statusdomain/refs/heads/main/domain.txt"
 
 bot = Bot(token=BOT_TOKEN)
 
@@ -33,8 +36,11 @@ async def ambil_list_domain():
         return []
 
 def cek_domain(domain):
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+    }
     try:
-        response = requests.get(f"http://{domain}", timeout=5)
+        response = requests.get(f"http://{domain}", timeout=5, headers=headers)
         if response.status_code == 200:
             return "UP"
         else:
@@ -45,6 +51,7 @@ def cek_domain(domain):
 async def cek_domain_job():
     domains = await ambil_list_domain()
     if not domains:
+        print(f"{datetime.now()}: Tidak ada domain yang bisa dicek.")
         return
 
     down = {}
@@ -61,10 +68,11 @@ async def cek_domain_job():
         await kirim_pesan(pesan)
 
 async def lapor_status_bot():
-    pesan = f"🤖 Bot masih aktif pada {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+    pesan = f"🤖 Bot aktif ({datetime.now().strftime('%Y-%m-%d %H:%M:%S')})"
     await kirim_pesan(pesan)
 
 async def run_bot():
+    print("🚀 Bot mulai dijalankan...")
     while True:
         now = datetime.now()
 
@@ -76,7 +84,7 @@ async def run_bot():
         if now.minute == 0:
             await lapor_status_bot()
 
-        await asyncio.sleep(60)  # cek setiap menit
+        await asyncio.sleep(60)
 
 if __name__ == "__main__":
     asyncio.run(run_bot())
