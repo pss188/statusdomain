@@ -66,8 +66,8 @@ def generate_status_report(domains):
     
     report.extend([
         "",
-        f"{ICONS['bot']} *Bot is running* ✅",
-        f"Next report in 1 hour"
+        f"{ICONS['bot']} *Bot Cek Domain Aktif* ✅",
+        f"Laporan selanjutnya 1 jam lagi"
     ])
     
     return "\n".join(report)
