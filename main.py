@@ -5,15 +5,12 @@ import os
 from telegram import Bot
 from telegram.constants import ParseMode
 import aiohttp
-import schedule
-import time
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 GROUP_CHAT_ID = int(os.getenv("GROUP_CHAT_ID"))
+DOMAIN_TXT_URL = "https://raw.githubusercontent.com/pss188/statusdomain/refs/heads/main/domain.txt"  # Ganti URL
 
 bot = Bot(token=BOT_TOKEN)
-
-DOMAIN_TXT_URL = "https://raw.githubusercontent.com/pss188/statusdomain/refs/heads/main/domain.txt"  # Ganti ini dengan RAW GitHub URL kamu
 
 async def kirim_pesan(pesan):
     try:
@@ -35,7 +32,7 @@ async def ambil_list_domain():
         print(f"Error ambil domain.txt: {e}")
         return []
 
-def cek_domain_sync(domain):
+def cek_domain(domain):
     try:
         response = requests.get(f"http://{domain}", timeout=5)
         if response.status_code == 200:
@@ -45,34 +42,41 @@ def cek_domain_sync(domain):
     except requests.RequestException:
         return "DOWN (no response)"
 
-async def job_cek_domain():
+async def cek_domain_job():
     domains = await ambil_list_domain()
     if not domains:
         return
 
-    down_domains = {}
+    down = {}
     for domain in domains:
-        status = cek_domain_sync(domain)
+        status = cek_domain(domain)
         print(f"{datetime.now()}: {domain} -> {status}")
         if status != "UP":
-            down_domains[domain] = status
+            down[domain] = status
 
-    if down_domains:
+    if down:
         pesan = f"⚠️ *Laporan Domain DOWN* ({datetime.now().strftime('%Y-%m-%d %H:%M:%S')}):\n"
-        for d, s in down_domains.items():
+        for d, s in down.items():
             pesan += f"- {d}: {s}\n"
         await kirim_pesan(pesan)
-    else:
-        print(f"{datetime.now()}: Semua domain UP.")
 
-async def job_lapor_status_bot():
-    pesan = f"✅ Bot masih aktif ({datetime.now().strftime('%Y-%m-%d %H:%M:%S')})"
+async def lapor_status_bot():
+    pesan = f"🤖 Bot masih aktif pada {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
     await kirim_pesan(pesan)
 
-async def run_async_jobs():
-    await job_cek_domain()
-    await job_lapor_status_bot()
-
+async def run_bot():
     while True:
-        schedule.run_pending()
-        await asyncio.sleep(1
+        now = datetime.now()
+
+        # Cek domain tiap 5 menit
+        if now.minute % 5 == 0:
+            await cek_domain_job()
+
+        # Lapor status tiap jam (saat menit == 0)
+        if now.minute == 0:
+            await lapor_status_bot()
+
+        await asyncio.sleep(60)  # cek setiap menit
+
+if __name__ == "__main__":
+    asyncio.run(run_bot())
