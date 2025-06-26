@@ -10,3 +10,4 @@ bshoki.sbs
 bshoki.click
 bbpaten.online
 bbpaten.shop
+bboke.xyz
