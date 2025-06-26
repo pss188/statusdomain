@@ -44,7 +44,7 @@ def cek_domain(domain):
         # Selama ada respons dari server, kita anggap domain aktif (meskipun 403, 404, dll)
         return "UP"
     except requests.RequestException:
-        return "DOWN (no response)"
+        return "Kayaknya Gak Bisa Dibuka, Tolong Cek? Kalau masih bisa abaikan aja"
 
 
 async def cek_domain_job():
@@ -67,7 +67,7 @@ async def cek_domain_job():
         await kirim_pesan(pesan)
 
 async def lapor_status_bot():
-    pesan = f"🤖 Bot aktif ({datetime.now().strftime('%Y-%m-%d %H:%M:%S')})"
+    pesan = f"🤖 Bot Cek Domain Masih Hidup ({datetime.now().strftime('%Y-%m-%d %H:%M:%S')})"
     await kirim_pesan(pesan)
 
 async def run_bot():
