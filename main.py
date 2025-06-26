@@ -7,14 +7,14 @@ from telegram import Bot
 from telegram.error import InvalidToken
 from dotenv import load_dotenv
 
-# ========== MUAT ENV VARIABEL ==========
-load_dotenv()  # hanya berfungsi di lokal jika ada file .env
+# Load .env (untuk lokal, di Railway abaikan ini)
+load_dotenv()
 
 TOKEN_BOT = os.getenv("TOKEN_BOT_TELEGRAM")
 ID_GRUP = os.getenv("ID_GRUP_TELEGRAM")
 FILE_DOMAIN = "domain.txt"
-INTERVAL_CHEK = 300  # setiap 5 menit
-INTERVAL_LAPORAN = 3600  # setiap 1 jam
+INTERVAL_CHEK = 300  # detik (5 menit)
+INTERVAL_LAPORAN = 3600  # detik (1 jam)
 
 IKON = {
     "aktif": "🟢",
@@ -26,12 +26,7 @@ IKON = {
     "error": "❗"
 }
 
-# ========== CETAK DEBUG ==========
-print(f"{IKON['bot']} Memulai program monitoring...")
-print(f"📦 TOKEN_BOT = {TOKEN_BOT}")
-print(f"📦 ID_GRUP   = {ID_GRUP}")
-
-# ========== FUNGSI ==========
+print("🚀 Program mulai dijalankan...")
 
 def muat_domain():
     try:
@@ -50,7 +45,7 @@ def cek_situs(url):
         )
         return response.status_code < 400
     except Exception as e:
-        print(f"{IKON['error']} Error saat cek {url}: {type(e).__name__}")
+        print(f"{IKON['error']} Error cek {url}: {type(e).__name__}")
         return False
 
 async def kirim_notifikasi(bot, pesan):
@@ -69,27 +64,27 @@ async def kirim_notifikasi(bot, pesan):
 def buat_laporan(daftar_domain):
     header = f"{IKON['laporan']} *LAPORAN MONITORING*"
     waktu = f"{IKON['waktu']} {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}"
-
     body = []
     for domain in daftar_domain:
         status = cek_situs(domain)
         icon = IKON['aktif'] if status else IKON['down']
         body.append(f"{icon} `{domain}`")
-
     footer = f"\n{IKON['bot']} *Bot aktif* | Laporan berikutnya dalam 1 jam"
     return "\n".join([header, waktu, ""] + body + [footer])
 
 async def monitor():
-    # Validasi Token
     if not TOKEN_BOT or not TOKEN_BOT.startswith("bot"):
-        raise InvalidToken("❌ Token tidak valid! Harus diawali dengan 'bot'")
-
+        raise InvalidToken("❌ Token tidak valid! Harus diawali 'bot'")
     if not ID_GRUP:
         raise ValueError("❌ ID grup Telegram belum di-set")
 
     bot = Bot(token=TOKEN_BOT)
-    info = await bot.get_me()
-    print(f"{IKON['bot']} Bot {info.username} siap monitoring!")
+    try:
+        info = await bot.get_me()
+        print(f"{IKON['bot']} Bot {info.username} siap monitoring!")
+    except Exception as e:
+        print(f"{IKON['error']} Token gagal digunakan: {e}")
+        return
 
     daftar_domain = muat_domain()
     if not daftar_domain:
@@ -119,17 +114,14 @@ async def monitor():
                     waktu_lapor = time.time()
 
             await asyncio.sleep(INTERVAL_CHEK)
-
         except Exception as e:
             print(f"{IKON['error']} Error utama: {type(e).__name__}")
             await asyncio.sleep(60)
-
-# ========== JALANKAN PROGRAM ==========
 
 if __name__ == "__main__":
     try:
         asyncio.run(monitor())
     except KeyboardInterrupt:
-        print(f"\n{IKON['bot']} Bot dihentikan manual")
+        print("\n🤖 Bot dihentikan manual")
     except Exception as e:
-        print(f"{IKON['error']} Error fatal: {type(e).__name__}")
+        print(f"❗ Error fatal: {e}")
