@@ -41,12 +41,11 @@ def cek_domain(domain):
     }
     try:
         response = requests.get(f"http://{domain}", timeout=5, headers=headers)
-        if response.status_code == 200:
-            return "UP"
-        else:
-            return f"DOWN (status code: {response.status_code})"
+        # Selama ada respons dari server, kita anggap domain aktif (meskipun 403, 404, dll)
+        return "UP"
     except requests.RequestException:
         return "DOWN (no response)"
+
 
 async def cek_domain_job():
     domains = await ambil_list_domain()
