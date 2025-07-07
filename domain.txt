@@ -24,3 +24,7 @@ bbpaten.store
 bbpaten.website
 bshoki.icu
 bshoki.lol
+bshoki.autos
+bshoki.beauty
+bbpaten.space
+bbpaten.sbs
