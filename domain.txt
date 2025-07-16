@@ -18,3 +18,7 @@ bshoki.boats
 bshoki.bond
 bbpaten.cyou
 bbpaten.icu
+bbpaten.autos
+bbpaten.beauty
+bbpaten.boats
+bbpaten.bond
