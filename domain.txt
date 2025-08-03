@@ -18,3 +18,8 @@ bbpaten.bond
 bshoki.makeup
 bshoki.mom
 bshoki.motorcycles
+bbpaten.click
+bbpaten.homes
+bbpaten.lol
+bshoki.pics
+bshoki.quest
