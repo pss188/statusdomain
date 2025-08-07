@@ -19,3 +19,7 @@ bbpaten.homes
 bbpaten.lol
 bshoki.pics
 bshoki.quest
+bshoki.rest
+bshoki.skin
+bshoki.yachts
+bshoki.monster
