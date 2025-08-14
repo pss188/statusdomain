@@ -19,6 +19,5 @@ bshoki.rest
 bshoki.skin
 bshoki.yachts
 bshoki.monster
-bbpaten.makeup
 bbpaten.mom
 bbpaten.motorcycles
